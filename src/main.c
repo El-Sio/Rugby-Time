@@ -1,10 +1,10 @@
-
 #include "pebble_os.h"
 #include "pebble_app.h"
 #include "pebble_fonts.h"
 #include "http.h"
 #include "util.h"
 
+//Set this to true to compile for Android
 #define ANDROID false
  
 #if ANDROID
@@ -13,9 +13,9 @@
 #define MY_UUID HTTP_UUID
 #endif
 
-#define HTTP_COOKIE 42691234	
-	
-//PBL_APP_INFO_SIMPLE(MY_UUID, "Rugby Time", "CANAL+", 1 /* App version */);
+//Unique Random Stuff to identify one app from another with Httpebble
+#define HTTP_COOKIE 42691234
+
 PBL_APP_INFO(MY_UUID, "Rugby Time", "CANAL+", 1, 0, RESOURCE_ID_IMAGE_MENU_ICON, APP_INFO_STANDARD_APP);
 
 
@@ -41,12 +41,10 @@ static void open_results(int index, void* context);
 void get_match(int journee, int numeromatch);
 void get_result(int journee, int rang);
 
-ActionBarLayer main_action_bar;
 ActionBarLayer ranking_action_bar;
 ActionBarLayer result_action_bar;
 
 NumberWindow selectday;
-Window window;
 Window resultwindow;
 Window rankingwindow;
 Window menuwindow;
@@ -64,6 +62,9 @@ static HeapBitmap icon_minus;
 
 //Main Menu Stuff
 static SimpleMenuItem main_menu_items[] = {
+	{
+		.title = "Select Data"
+	},
 	{
 		.title = "Ranking",
 		.callback = open_ranking,
@@ -95,16 +96,15 @@ static void open_ranking(int index, void* context) {
 	if(!window_is_loaded(&rankingwindow))
 	{
 	window_init(&rankingwindow, "Ranking");
-  	window_stack_push(&rankingwindow, true);
   	window_set_window_handlers(&rankingwindow, (WindowHandlers){
   	.appear  = window_appear3,
   	.disappear = window_disappear3,
   	.load = window_load3
   });
+	window_stack_push(&rankingwindow, true);
 	}
 	else {window_stack_push(&rankingwindow, true);}
-  
-  get_result(nbjournee,1);
+	get_result(nbjournee,1);
 	
 }
 
@@ -116,15 +116,15 @@ static void open_results(int index, void* context) {
 	if(!window_is_loaded(&resultwindow))
 	{
 	window_init(&resultwindow, "Result");
- 	window_stack_push(&resultwindow, true);
   	window_set_window_handlers(&resultwindow, (WindowHandlers){
   	.appear  = window_appear2,
   	.disappear = window_disappear2,
   	.load = window_load2
   });
+	window_stack_push(&resultwindow, true);
 	}
 	else {window_stack_push(&resultwindow,true);}
-  get_match(nbjournee,0);
+	get_match(nbjournee,0);
 	
 }
 
@@ -176,124 +176,60 @@ void http_failure(int32_t request_id, int http_status, void* context) {
 
 //Windows Handlers
 
-void window_disappear(Window* me) {
-	//Not sure this is usefull
-	window_set_click_config_provider(me, (ClickConfigProvider) NULL);
-}
-
 void menuwindow_appear(Window* me) {
 	//Not sure this is usefull
-	simple_menu_layer_set_selected_index(&main_menu_layer, 1, true);
 }
 
 void menuwindow_disappear(Window* me) {
 	//Not sure this is usefull
-	simple_menu_layer_set_selected_index(&main_menu_layer, 1, true);
 }
 
 void window_disappear2(Window* me) {
 	//Not sure this is usefull
-	window_set_click_config_provider(me, (ClickConfigProvider) NULL);
 }
 
 void window_disappear3(Window* me) {
 	//Not sure this is usefull
-	window_set_click_config_provider(me, (ClickConfigProvider) NULL);
-}
-
-void window_load(Window* me) {
-
-  
-  /*Trying to figure out Action Bar Layer...
-  This crashes the Pebble !*/
-  
-  action_bar_layer_init(&main_action_bar);
-  action_bar_layer_add_to_window(&main_action_bar, me);
-  action_bar_layer_set_click_config_provider(&main_action_bar, (ClickConfigProvider) click_config_provider);
-
 }
 
 void window_load2(Window* me) {
 
   heap_bitmap_init(&icon_plus, RESOURCE_ID_IMAGE_ICON_PLUS);
   heap_bitmap_init(&icon_minus, RESOURCE_ID_IMAGE_ICON_MINUS);
-  /*Trying to figure out Action Bar Layer...
-  This crashes the Pebble !*/
-  
   action_bar_layer_init(&result_action_bar);
   action_bar_layer_add_to_window(&result_action_bar, me);
   action_bar_layer_set_click_config_provider(&result_action_bar, (ClickConfigProvider) click_config_provider2);	
-	action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
-    action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
+  action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
+  action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
+	layer_add_child(window_get_root_layer(me), &layer_text1.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text2.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text3.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text4.layer);
 }
 
 void window_load3(Window* me) {
 
   heap_bitmap_init(&icon_plus, RESOURCE_ID_IMAGE_ICON_PLUS);
   heap_bitmap_init(&icon_minus, RESOURCE_ID_IMAGE_ICON_MINUS);
-  /*Trying to figure out Action Bar Layer...
-  This crashes the Pebble !*/
-  
   action_bar_layer_init(&ranking_action_bar);
-  action_bar_layer_add_to_window(&ranking_action_bar, me);
-  action_bar_layer_set_click_config_provider(&ranking_action_bar, (ClickConfigProvider) click_config_provider3);	  	
+  action_bar_layer_set_click_config_provider(&ranking_action_bar, (ClickConfigProvider) click_config_provider3);
+	action_bar_layer_add_to_window(&ranking_action_bar, me);
 	action_bar_layer_set_icon(&ranking_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
     action_bar_layer_set_icon(&ranking_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
+	layer_add_child(window_get_root_layer(me), &layer_text1.layer);
+	layer_add_child(window_get_root_layer(me), &layer_text2.layer);
+	layer_add_child(window_get_root_layer(me), &layer_text3.layer);
+	layer_add_child(window_get_root_layer(me), &layer_text4.layer);
+
+	
 }
 
-/*void window_appear(Window* me) {
-
-  window_set_click_config_provider(me, (ClickConfigProvider) click_config_provider);
-  text_layer_init(&layer_text1, GRect(0, 10, 144, 30));
-  text_layer_set_text_color(&layer_text1, GColorBlack);
-  text_layer_set_background_color(&layer_text1, GColorClear);
-  text_layer_set_font(&layer_text1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(&layer_text1, GTextAlignmentCenter);
-  text_layer_set_text(&layer_text1, "Select Match Day");	
-  layer_add_child(&window.layer, &layer_text1.layer);
-
-  text_layer_init(&layer_text2, GRect(0, 110, 144, 30));
-  text_layer_set_text_color(&layer_text2, GColorBlack);
-  text_layer_set_background_color(&layer_text2, GColorClear);
-  text_layer_set_font(&layer_text2, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(&layer_text2, GTextAlignmentCenter);
-  text_layer_set_text(&layer_text2, "");
-  layer_add_child(&window.layer, &layer_text2.layer);
-
- text_layer_init(&layer_text3, GRect(0, 40, 144, 30));
-  text_layer_set_text_color(&layer_text3, GColorBlack);
-  text_layer_set_background_color(&layer_text3, GColorClear);
-  text_layer_set_font(&layer_text3, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(&layer_text3, GTextAlignmentCenter);
-  text_layer_set_text(&layer_text3, "");
-  layer_add_child(&window.layer, &layer_text3.layer);
-	
-  text_layer_init(&layer_text4, GRect(0, 70, 144, 30));
-  text_layer_set_text_color(&layer_text4, GColorBlack);
-  text_layer_set_background_color(&layer_text4, GColorClear);
-  text_layer_set_font(&layer_text4, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(&layer_text4, GTextAlignmentCenter);
-  text_layer_set_text(&layer_text4, itoa(nbjournee));
-  layer_add_child(&window.layer, &layer_text4.layer);
-	
-}*/
-
 void window_appear2(Window* me) {
-	
-  //window_set_click_config_provider(me, (ClickConfigProvider) click_config_provider2);
-  layer_add_child(&resultwindow.layer, &layer_text1.layer);
-  layer_add_child(&resultwindow.layer, &layer_text2.layer);
-  layer_add_child(&resultwindow.layer, &layer_text3.layer);
-  layer_add_child(&resultwindow.layer, &layer_text4.layer);
+  
 }
 
 void window_appear3(Window* me) {
 	
-  window_set_click_config_provider(me, (ClickConfigProvider) click_config_provider3);
-  layer_add_child(&rankingwindow.layer, &layer_text1.layer);
-  layer_add_child(&rankingwindow.layer, &layer_text2.layer);
-  layer_add_child(&rankingwindow.layer, &layer_text3.layer);
-  layer_add_child(&rankingwindow.layer, &layer_text4.layer);
 }
 
 //API call to get match results for Match Day "journee",returns match N° "numeromatch" and allows to cycle through all 7 matches of the day.
@@ -346,25 +282,13 @@ void get_result(int journee, int rang) {
 
 // Button handlers (one for each window)
 
-//main window Up : increase and display Matchday
-/*void up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
-  (void)recognizer;
-  (void)window;
-text_layer_set_text(&layer_text3, "");
-text_layer_set_text(&layer_text1, "Select Match Day");
-text_layer_set_text(&layer_text2, "");
-	nbjournee +=1;
-	if(nbjournee>26) {nbjournee =26;}
-	text_layer_set_text(&layer_text4, itoa(nbjournee));
-}*/
-
 // result window Up : ask for next match result (cycles from 0 to 6)
 void up_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)resultwindow;
 	nummatch +=1;
 	text_layer_set_text(&layer_text1,"loading");
-	text_layer_set_text(&layer_text3,"next");
+	text_layer_set_text(&layer_text3,"previous");
 	text_layer_set_text(&layer_text4,"game");
 	text_layer_set_text(&layer_text2, "result");
 	if(nummatch>6) {nummatch =0;}
@@ -377,7 +301,7 @@ void up_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
   (void)rankingwindow;
 	numrang +=1;
 	if(numrang>14) {numrang =1;}
-	text_layer_set_text(&layer_text1,"next");
+	text_layer_set_text(&layer_text1,"previous");
 	text_layer_set_text(&layer_text3,"at day :");
 	text_layer_set_text(&layer_text4,"loading");
 	text_layer_set_text(&layer_text2, "loading");
@@ -390,7 +314,7 @@ void down_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
   (void)resultwindow;
 	nummatch -=1;
 	text_layer_set_text(&layer_text1,"loading");
-	text_layer_set_text(&layer_text3,"previous");
+	text_layer_set_text(&layer_text3,"next");
 	text_layer_set_text(&layer_text4,"game");
 	text_layer_set_text(&layer_text2, "result");
 	if(nummatch<0) {nummatch =6;}
@@ -404,71 +328,25 @@ void down_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
 
 	numrang -=1;
 	if(numrang<1) {numrang =14;}
-	text_layer_set_text(&layer_text1,"previous");
+	text_layer_set_text(&layer_text1,"next");
 	text_layer_set_text(&layer_text3,"at day :");
 	text_layer_set_text(&layer_text4,"loading");
 	text_layer_set_text(&layer_text2, "loading");
 	get_result(nbjournee,numrang);
 }
 
-//main window down : decrese and display Match Day
-/*void down_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
-  (void)recognizer;
-  (void)window;
-text_layer_set_text(&layer_text3, "");
-text_layer_set_text(&layer_text1, "Select Match Day :");
-text_layer_set_text(&layer_text2, "");
-	nbjournee -=1;
-	if(nbjournee<1) {nbjournee =1;}
-	text_layer_set_text(&layer_text4, itoa(nbjournee));
-}*/
-
-//main window single select click -short- : calls the ranking window up and asks for rank 1 in current Match Day
-/*void select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
-  (void)recognizer;
-  (void)window;
-
-	//Todo : call the main menu window
-	window_init(&menuwindow, "Select Data");
- 	window_stack_push(&menuwindow, true);
-	main_menu_init(&menuwindow);
-}*/
 void nbjourneeselect() {
 
 	nbjournee= number_window_get_value(&selectday);
 	//Todo : call the main menu window
 	window_init(&menuwindow, "Select Data");
- 	window_stack_push(&menuwindow, true);
 	main_menu_init(&menuwindow);
-	window_set_window_handlers((Window*)&selectday, (WindowHandlers) {.appear = menuwindow_appear,.disappear = menuwindow_disappear});
-	
+	window_set_window_handlers(&menuwindow, (WindowHandlers) {.appear = menuwindow_appear,.disappear = menuwindow_disappear});
+	window_stack_push(&menuwindow, true);
 	
 }
-/*
-//main window single select click -long- : calls the result window up and asks for match N°1 in current Match Day
-void select_long_click_handler(ClickRecognizerRef recognizer, Window *window) {
-  (void)recognizer;
-  (void)window;
-
-}
-*/
 
 //Config Provider for each window
-
-//main
-/*void click_config_provider(ClickConfig **config, Window *window) {
-  (void)window;
-
-  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) select_single_click_handler;
-
-  //config[BUTTON_ID_SELECT]->long_click.handler = (ClickHandler) select_long_click_handler;
-
-  config[BUTTON_ID_UP]->click.handler = (ClickHandler) up_single_click_handler;
-  config[BUTTON_ID_UP]->click.repeat_interval_ms = 100;
-
-  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) down_single_click_handler;
-  config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
-}*/
 
 //results
 void click_config_provider2(ClickConfig **config, Window *window) {
@@ -496,7 +374,7 @@ void click_config_provider3(ClickConfig **config, Window *window) {
 
 void handle_init(AppContextRef ctx) {
   http_set_app_id(76782702);
-
+	resource_init_current_app(&APP_RESOURCES);
   http_register_callbacks((HTTPCallbacks) {
     .success = http_success,
     .failure = http_failure
@@ -531,13 +409,6 @@ void handle_init(AppContextRef ctx) {
 	number_window_set_min(&selectday, 1);
 	number_window_set_step_size(&selectday, 1);
 	window_stack_push((Window *)&selectday, true);
-  /*window_init(&window, "Rugby Time");
-  window_stack_push(&window, true);
-  window_set_window_handlers(&window, (WindowHandlers){
-  .appear  = window_appear,
-  .disappear = window_disappear,
-  .load = window_load
-  });*/
 }
 
 //Error handling
