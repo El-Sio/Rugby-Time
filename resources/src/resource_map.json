@@ -1,6 +1,11 @@
 {
     "media": [
         {
+            "defName": "IMAGE_ICON_REFRESH",
+            "type": "png",
+            "file": "images/refresh_icon.png"
+        },
+        {
             "defName": "IMAGE_ICON_MINUS",
             "type": "png",
             "file": "images/minus.png"

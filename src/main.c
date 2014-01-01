@@ -59,6 +59,7 @@ static int numrang =1;
 //icons
 static HeapBitmap icon_plus;
 static HeapBitmap icon_minus;
+static HeapBitmap icon_refresh;
 
 //Main Menu Stuff
 static SimpleMenuItem main_menu_items[] = {
@@ -196,11 +197,13 @@ void window_load2(Window* me) {
 
   heap_bitmap_init(&icon_plus, RESOURCE_ID_IMAGE_ICON_PLUS);
   heap_bitmap_init(&icon_minus, RESOURCE_ID_IMAGE_ICON_MINUS);
+  heap_bitmap_init(&icon_refresh, RESOURCE_ID_IMAGE_ICON_REFRESH);
   action_bar_layer_init(&result_action_bar);
   action_bar_layer_add_to_window(&result_action_bar, me);
   action_bar_layer_set_click_config_provider(&result_action_bar, (ClickConfigProvider) click_config_provider2);	
   action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
   action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
+  action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_SELECT, &icon_refresh.bmp);
 	layer_add_child(window_get_root_layer(me), &layer_text1.layer);
   layer_add_child(window_get_root_layer(me), &layer_text2.layer);
   layer_add_child(window_get_root_layer(me), &layer_text3.layer);
@@ -321,6 +324,17 @@ void down_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
 	get_match(nbjournee,nummatch);
 }
 
+void select_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
+  (void)recognizer;
+  (void)resultwindow;
+	text_layer_set_text(&layer_text1,"Refreshing");
+	text_layer_set_text(&layer_text3,"current");
+	text_layer_set_text(&layer_text4,"game");
+	text_layer_set_text(&layer_text2, "result");
+	get_match(nbjournee,nummatch);
+	
+}
+
 // ranking window down : ask for previous in ranking (cycles from 14 to 0)
 void down_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
@@ -357,6 +371,9 @@ void click_config_provider2(ClickConfig **config, Window *window) {
 
   config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) down_single_click_handler2;
   config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
+	
+  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) select_single_click_handler2;
+  config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 100;
 }
 
 //ranking
