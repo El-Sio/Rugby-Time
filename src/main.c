@@ -24,10 +24,12 @@ PBL_APP_INFO(MY_UUID, "Rugby Time", "CANAL+", 1, 0, RESOURCE_ID_IMAGE_MENU_ICON,
 void handle_init(AppContextRef ctx);
 void http_success(int32_t request_id, int http_status, DictionaryIterator* received, void* context);
 void http_failure(int32_t request_id, int http_status, void* context);
-void menuwindow_appear(Window* me);
 void window_unload3(Window* me);
 void window_unload2(Window* me);
-void menuwindow_disappear(Window* me);
+void mainwindow_load(Window* me);
+void mainwindow_unload(Window* me);
+void menuwindow_load(Window* me);
+void menuwindow_unload(Window* me);
 void window_load2(Window* me);
 void window_load3(Window* me);
 void httpebble_error(int error_code);
@@ -38,10 +40,13 @@ static void open_ranking(int index, void* context);
 static void open_results(int index, void* context);
 void get_match(int journee, int numeromatch);
 void get_result(int journee, int rang);
+void get_current_journee();
+void nbjourneeselect();
 
 ActionBarLayer ranking_action_bar;
 ActionBarLayer result_action_bar;
 
+Window mainwindow;
 NumberWindow selectday;
 Window resultwindow;
 Window rankingwindow;
@@ -53,16 +58,24 @@ TextLayer layer_text4;
 static int nbjournee=1;
 static int nummatch=1;
 static int numrang =1;
+static int currentjournee = 1;
+bool loaded = false;
 
 //icons
 static HeapBitmap icon_plus;
 static HeapBitmap icon_minus;
 static HeapBitmap icon_refresh;
+static HeapBitmap icon_ballon;
+
+//Mains screen image
+static BmpContainer ballon_container;
+
 
 //Main Menu Stuff
 static SimpleMenuItem main_menu_items[] = {
 	{
-		.title = "Select Data"
+		.icon = &icon_ballon.bmp,
+		.title = "Select Data...",
 	},
 	{
 		.title = "Ranking",
@@ -83,6 +96,7 @@ static SimpleMenuLayer main_menu_layer;
 
 void main_menu_init(Window* window) {
     simple_menu_layer_init(&main_menu_layer, GRect(0, 0, 144, 152), window, &section, 1, NULL);
+	simple_menu_layer_set_selected_index(&main_menu_layer, 1, true);
     layer_add_child(window_get_root_layer(window), simple_menu_layer_get_layer(&main_menu_layer));
 }
 
@@ -123,9 +137,9 @@ void http_success(int32_t request_id, int http_status, DictionaryIterator* recei
     return;
   }
 text_layer_set_text(&layer_text1,"success !");
-text_layer_set_text(&layer_text3,"No Data");
-text_layer_set_text(&layer_text4,"No Data");
-text_layer_set_text(&layer_text2, "No Data");
+text_layer_set_text(&layer_text4,"Back to Quit");
+text_layer_set_text(&layer_text3,"	RUGBY TIME");
+text_layer_set_text(&layer_text2, "Select: reload");
 Tuple* tuple1 = dict_find(received, 1);
 Tuple* tuple2 = dict_find(received, 2);
 
@@ -152,6 +166,20 @@ Tuple* tuple2 = dict_find(received, 2);
 		text_layer_set_text(&layer_text2,tuple4->value->cstring);
 		text_layer_set_text(&layer_text4, tuple5->value->cstring);
 	}
+	
+	//Case for intialization
+	if(strcmp(tuple1->value->cstring,"C")==0)
+	{
+		currentjournee = tuple2->value->int32;
+		number_window_init(&selectday, "Match Day:", (NumberWindowCallbacks) {.selected = nbjourneeselect}, NULL);
+	    number_window_set_max(&selectday, 26);
+		number_window_set_min(&selectday, 1);
+		number_window_set_step_size(&selectday, 1);
+		window_stack_push((Window *)&selectday, true);
+		number_window_set_value(&selectday, currentjournee);
+		loaded = true;
+		
+	}
 
 }
 
@@ -163,12 +191,42 @@ void http_failure(int32_t request_id, int http_status, void* context) {
 
 //Windows Handlers
 
-void menuwindow_appear(Window* me) {
-	//Not sure this is usefull
+void mainwindow_load(Window* me) {
+	
+  
+  bmp_init_container(RESOURCE_ID_IMAGE_MAIN_BALLON, &ballon_container);
+  layer_set_frame(&ballon_container.layer.layer, GRect(50,10,40,40));
+  layer_add_child(window_get_root_layer(me), &ballon_container.layer.layer);	
+  layer_add_child(window_get_root_layer(me), &layer_text2.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text4.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text3.layer);
+  text_layer_set_text(&layer_text3, "	RUGBY TIME");
+  text_layer_set_text(&layer_text1, "");
+  window_set_click_config_provider(me, (ClickConfigProvider) click_config_provider);
+  text_layer_set_text(&layer_text4, "Back to Quit");
+	if(!loaded) { text_layer_set_text(&layer_text2, "Loading...");}
+	else { text_layer_set_text(&layer_text2, "Select: Reload");}
+ 
+
+  
 }
 
-void menuwindow_disappear(Window* me) {
-	//Not sure this is usefull
+void mainwindow_unload(Window *me) {
+	
+	bmp_deinit_container(&ballon_container);
+	layer_remove_child_layers(window_get_root_layer(me));
+}
+
+void menuwindow_load(Window* me) {
+
+	heap_bitmap_init(&icon_ballon, RESOURCE_ID_IMAGE_MENU_ICON);
+	main_menu_init(&menuwindow);
+}
+
+void menuwindow_unload(Window* me) {
+	
+	heap_bitmap_deinit(&icon_ballon);
+	layer_remove_child_layers(window_get_root_layer(me));
 }
 
 void window_unload2(Window* me) {
@@ -225,14 +283,6 @@ void window_load3(Window* me) {
 	
 }
 
-void window_appear2(Window* me) {
-  
-}
-
-void window_appear3(Window* me) {
-	
-}
-
 //API call to get match results for Match Day "journee",returns match N° "numeromatch" and allows to cycle through all 7 matches of the day.
 //Call format is {"1":matchday,"2":"match","3":match number}
 //Return format is {"1":"A",2":"home team","3":"home score","4":"away score","5":"away team"}
@@ -273,6 +323,31 @@ void get_result(int journee, int rang) {
   dict_write_int32(dict, 1, journee);
   dict_write_cstring(dict, 2, "");
   dict_write_int32(dict, 3, rang);
+
+  result = http_out_send();
+  if (result != HTTP_OK) {
+    httpebble_error(result);
+    return;
+  }
+}
+
+//API call to get current match day. Returns highest match day with at least one game played.
+//Call format is {"1":0,"2":"","3":1}
+//Return format is {"1":"C",2":matchday}
+
+void get_current_journee() {
+	
+  DictionaryIterator* dict;
+  HTTPResult  result = http_out_get("http://japansio.info/api/testAPI.php", HTTP_COOKIE, &dict);
+  if (result != HTTP_OK) {
+    httpebble_error(result);
+    return;
+  }
+  
+  dict_write_int32(dict, 1, 0);
+  dict_write_cstring(dict, 2, "");
+  dict_write_int32(dict, 3, 1);
+  text_layer_set_text(&layer_text2, "Reloading...");
 
   result = http_out_send();
   if (result != HTTP_OK) {
@@ -333,6 +408,15 @@ void select_single_click_handler2(ClickRecognizerRef recognizer, Window *window)
 	
 }
 
+//Main window select : reload Current Match Day
+void select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+  (void)recognizer;
+  (void)resultwindow;
+	
+	get_current_journee();
+	
+}
+
 // ranking window down : ask for previous in ranking (cycles from 14 to 0)
 void down_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
@@ -347,13 +431,12 @@ void down_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
 	get_result(nbjournee,numrang);
 }
 
+//Select button in match day selector
 void nbjourneeselect() {
 
 	nbjournee= number_window_get_value(&selectday);
-	//Todo : call the main menu window
 	window_init(&menuwindow, "Select Data");
-	main_menu_init(&menuwindow);
-	window_set_window_handlers(&menuwindow, (WindowHandlers) {.appear = menuwindow_appear,.disappear = menuwindow_disappear});
+	window_set_window_handlers(&menuwindow, (WindowHandlers) {.load = menuwindow_load,.unload = menuwindow_unload});
 	window_stack_push(&menuwindow, true);
 	
 }
@@ -385,11 +468,18 @@ void click_config_provider3(ClickConfig **config, Window *window) {
   config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
 }
 
+void click_config_provider(ClickConfig **config, Window *window) {
+	(void)mainwindow;
+	
+	  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) select_single_click_handler;
+      config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 100;
+}
+
 //App init
 
 void handle_init(AppContextRef ctx) {
   http_set_app_id(76782702);
-	resource_init_current_app(&APP_RESOURCES);
+  resource_init_current_app(&APP_RESOURCES);
   http_register_callbacks((HTTPCallbacks) {
     .success = http_success,
     .failure = http_failure
@@ -407,7 +497,7 @@ void handle_init(AppContextRef ctx) {
   text_layer_set_font(&layer_text2, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   text_layer_set_text_alignment(&layer_text2, GTextAlignmentCenter);
 	
-	text_layer_init(&layer_text3, GRect(0, 40, 120, 30));
+	text_layer_init(&layer_text3, GRect(0, 50, 120, 30));
   text_layer_set_text_color(&layer_text3, GColorBlack);
   text_layer_set_background_color(&layer_text3, GColorClear);
   text_layer_set_font(&layer_text3, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
@@ -419,11 +509,10 @@ void handle_init(AppContextRef ctx) {
   text_layer_set_font(&layer_text4, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   text_layer_set_text_alignment(&layer_text4, GTextAlignmentCenter);	
 	
-	number_window_init(&selectday, "Match Day :", (NumberWindowCallbacks) {.selected = nbjourneeselect}, "");
-	number_window_set_max(&selectday, 26);
-	number_window_set_min(&selectday, 1);
-	number_window_set_step_size(&selectday, 1);
-	window_stack_push((Window *)&selectday, true);
+	window_init(&mainwindow, "Rugby Time");
+	window_set_window_handlers(&mainwindow, (WindowHandlers) {.load = mainwindow_load,.unload = mainwindow_unload});
+	window_stack_push(&mainwindow, true);
+	get_current_journee();
 }
 
 //Error handling

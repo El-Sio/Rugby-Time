@@ -1,6 +1,11 @@
 {
     "media": [
         {
+            "defName": "IMAGE_MAIN_BALLON",
+            "type": "png",
+            "file": "images/big_ballon.png"
+        },
+        {
             "defName": "IMAGE_ICON_REFRESH",
             "type": "png",
             "file": "images/refresh_icon.png"
