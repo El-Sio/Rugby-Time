@@ -24,11 +24,9 @@ PBL_APP_INFO(MY_UUID, "Rugby Time", "CANAL+", 1, 0, RESOURCE_ID_IMAGE_MENU_ICON,
 void handle_init(AppContextRef ctx);
 void http_success(int32_t request_id, int http_status, DictionaryIterator* received, void* context);
 void http_failure(int32_t request_id, int http_status, void* context);
-void window_appear2(Window* me);
 void menuwindow_appear(Window* me);
-void window_appear3(Window* me);
-void window_disappear2(Window* me);
-void window_disappear3(Window* me);
+void window_unload3(Window* me);
+void window_unload2(Window* me);
 void menuwindow_disappear(Window* me);
 void window_load2(Window* me);
 void window_load3(Window* me);
@@ -93,20 +91,14 @@ static void open_ranking(int index, void* context) {
     text_layer_set_text(&layer_text1, "ranking at day : ");
 	text_layer_set_text(&layer_text3, "loading...");
 	text_layer_set_text(&layer_text4, "");
-	text_layer_set_text(&layer_text2, "loading...");
-	if(!window_is_loaded(&rankingwindow))
-	{
+	text_layer_set_text(&layer_text2, "loading...");	
 	window_init(&rankingwindow, "Ranking");
-  	window_set_window_handlers(&rankingwindow, (WindowHandlers){
-  	.appear  = window_appear3,
-  	.disappear = window_disappear3,
-  	.load = window_load3
-  });
 	window_stack_push(&rankingwindow, true);
-	}
-	else {window_stack_push(&rankingwindow, true);}
+	window_set_window_handlers(&rankingwindow, (WindowHandlers){
+  	.load = window_load3,
+	.unload = window_unload3
+  });
 	get_result(nbjournee,1);
-	
 }
 
 static void open_results(int index, void* context) {
@@ -114,19 +106,13 @@ static void open_results(int index, void* context) {
     text_layer_set_text(&layer_text3, itoa(nbjournee));
     text_layer_set_text(&layer_text4, "");
     text_layer_set_text(&layer_text2, "loading...");
-	if(!window_is_loaded(&resultwindow))
-	{
 	window_init(&resultwindow, "Result");
   	window_set_window_handlers(&resultwindow, (WindowHandlers){
-  	.appear  = window_appear2,
-  	.disappear = window_disappear2,
-  	.load = window_load2
+  	.load = window_load2,
+	.unload = window_unload2
   });
 	window_stack_push(&resultwindow, true);
-	}
-	else {window_stack_push(&resultwindow,true);}
-	get_match(nbjournee,0);
-	
+	get_match(nbjournee,0);	
 }
 
 //Handles all API returns
@@ -185,12 +171,24 @@ void menuwindow_disappear(Window* me) {
 	//Not sure this is usefull
 }
 
-void window_disappear2(Window* me) {
-	//Not sure this is usefull
+void window_unload2(Window* me) {
+	
+  heap_bitmap_deinit(&icon_plus);
+  heap_bitmap_deinit(&icon_minus);
+  heap_bitmap_deinit(&icon_refresh);
+  action_bar_layer_remove_from_window(&result_action_bar);
+  layer_remove_child_layers(window_get_root_layer(me));
+
 }
 
-void window_disappear3(Window* me) {
-	//Not sure this is usefull
+void window_unload3(Window* me) {
+
+  heap_bitmap_deinit(&icon_plus);
+  heap_bitmap_deinit(&icon_minus);
+  action_bar_layer_remove_from_window(&ranking_action_bar);
+  layer_remove_child_layers(window_get_root_layer(me));
+
+	
 }
 
 void window_load2(Window* me) {
