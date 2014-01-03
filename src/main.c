@@ -395,8 +395,8 @@ void result_up_single_click_handler(ClickRecognizerRef recognizer, Window *windo
 void ranking_up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)rankingwindow;
-	numrang +=1;
-	if(numrang>14) {numrang =1;}
+	numrang -=1;
+	if(numrang<1) {numrang =14;}
 	text_layer_set_text(&layer_text1,"previous");
 	text_layer_set_text(&layer_text3,"at day :");
 	text_layer_set_text(&layer_text4,"loading");
@@ -442,9 +442,9 @@ void ranking_down_single_click_handler(ClickRecognizerRef recognizer, Window *wi
   (void)recognizer;
   (void)rankingwindow;
 
-	numrang -=1;
-	if(numrang<1) {numrang =14;}
-	text_layer_set_text(&layer_text1,"next");
+	numrang +=1;
+	if(numrang>14) {numrang =1;}
+	text_layer_set_text(&layer_text1,"Next");
 	text_layer_set_text(&layer_text3,"at day :");
 	text_layer_set_text(&layer_text4,"loading");
 	text_layer_set_text(&layer_text2, "loading");
