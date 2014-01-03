@@ -24,6 +24,8 @@ PBL_APP_INFO(MY_UUID, "Rugby Time", "CANAL+", 1, 0, RESOURCE_ID_IMAGE_MENU_ICON,
 void handle_init(AppContextRef ctx);
 void http_success(int32_t request_id, int http_status, DictionaryIterator* received, void* context);
 void http_failure(int32_t request_id, int http_status, void* context);
+void buteur_window_load(Window* me);
+void buteur_window_unload(Window* me);
 void ranking_window_unload(Window* me);
 void result_window_unload(Window* me);
 void mainwindow_load(Window* me);
@@ -34,20 +36,25 @@ void menuwindow_unload(Window* me);
 void result_window_load(Window* me);
 void ranking_window_load(Window* me);
 void httpebble_error(int error_code);
+void buteur_click_config_provider(ClickConfig **config, Window *window);
 void main_click_config_provider(ClickConfig **config, Window *window);
 void result_click_config_provider(ClickConfig **config, Window *window);
 void ranking_click_config_provider(ClickConfig **config, Window *window);
 static void open_ranking(int index, void* context);
 static void open_results(int index, void* context);
+static void open_buteur(int index, void* context);
 void get_match(int journee, int numeromatch);
 void get_result(int journee, int rang);
+void get_buteur(int journee, int rangbut);
 void get_current_journee();
 void nbjourneeselect();
 
+ActionBarLayer buteur_action_bar;
 ActionBarLayer ranking_action_bar;
 ActionBarLayer result_action_bar;
 ActionBarLayer main_action_bar;
 
+Window buteurwindow;
 Window mainwindow;
 NumberWindow selectday;
 Window resultwindow;
@@ -61,6 +68,7 @@ static int nbjournee=1;
 static int nummatch=1;
 static int numrang =1;
 static int currentjournee = 1;
+static int rangbuteur = 1;
 bool loaded = false;
 
 //icons
@@ -86,6 +94,10 @@ static SimpleMenuItem main_menu_items[] = {
 	{
 		.title = "Results",
 		.callback = open_results,
+	},
+	{
+		.title = "Best Scorers",
+		.callback = open_buteur,
 	}
 };
 
@@ -129,6 +141,20 @@ static void open_results(int index, void* context) {
   });
 	window_stack_push(&resultwindow, true);
 	get_match(nbjournee,0);	
+}
+
+static void open_buteur(int index, void* context) {
+	text_layer_set_text(&layer_text1, "best scorer: ");
+    text_layer_set_text(&layer_text3, "");
+    text_layer_set_text(&layer_text4, "");
+    text_layer_set_text(&layer_text2, "loading...");
+	window_init(&buteurwindow, "Best Scorer");
+  	window_set_window_handlers(&buteurwindow, (WindowHandlers){
+  	.load = buteur_window_load,
+	.unload = buteur_window_unload
+  });
+	window_stack_push(&buteurwindow, true);
+	get_buteur(nbjournee,1);	
 }
 
 //Handles all API returns
@@ -191,6 +217,27 @@ Tuple* tuple2 = dict_find(received, 2);
 		loaded = true;
 		
 	}
+	
+	//Case for best Scorers
+	if(strcmp(tuple1->value->cstring,"D")==0)
+	{
+		Tuple* tuple3 = dict_find(received, 3);
+		Tuple* tuple4 = dict_find(received, 4);
+		Tuple* tuple5 = dict_find(received, 5);
+	
+		text_layer_set_text(&layer_text1, tuple5->value->cstring);
+		text_layer_set_text(&layer_text3, tuple2->value->cstring);
+		text_layer_set_text(&layer_text2, tuple4->value->cstring);
+		text_layer_set_text(&layer_text4, tuple3->value->cstring);
+		//Case of empty scorer (data not yet present)
+		if(strcmp(tuple2->value->cstring,"NA")==0)
+		{
+			text_layer_set_text(&layer_text1,"No Data");
+			text_layer_set_text(&layer_text3,"for this day");
+			text_layer_set_text(&layer_text4,"press back");
+			text_layer_set_text(&layer_text2, "to change day");
+		}
+	}
 
 }
 
@@ -249,6 +296,16 @@ void menuwindow_unload(Window* me) {
 	layer_remove_child_layers(window_get_root_layer(me));
 }
 
+void buteur_window_unload(Window* me) {
+	
+  heap_bitmap_deinit(&icon_plus);
+  heap_bitmap_deinit(&icon_minus);
+  heap_bitmap_deinit(&icon_refresh);
+  action_bar_layer_remove_from_window(&buteur_action_bar);
+  layer_remove_child_layers(window_get_root_layer(me));
+
+}
+
 void result_window_unload(Window* me) {
 	
   heap_bitmap_deinit(&icon_plus);
@@ -267,6 +324,23 @@ void ranking_window_unload(Window* me) {
   layer_remove_child_layers(window_get_root_layer(me));
 
 	
+}
+
+void buteur_window_load(Window* me) {
+
+  heap_bitmap_init(&icon_plus, RESOURCE_ID_IMAGE_ICON_PLUS);
+  heap_bitmap_init(&icon_minus, RESOURCE_ID_IMAGE_ICON_MINUS);
+  heap_bitmap_init(&icon_refresh, RESOURCE_ID_IMAGE_ICON_REFRESH);
+  action_bar_layer_init(&buteur_action_bar);
+  action_bar_layer_add_to_window(&buteur_action_bar, me);
+  action_bar_layer_set_click_config_provider(&buteur_action_bar, (ClickConfigProvider) buteur_click_config_provider);	
+  action_bar_layer_set_icon(&buteur_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
+  action_bar_layer_set_icon(&buteur_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
+  action_bar_layer_set_icon(&buteur_action_bar, BUTTON_ID_SELECT, &icon_refresh.bmp);
+  layer_add_child(window_get_root_layer(me), &layer_text1.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text2.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text3.layer);
+  layer_add_child(window_get_root_layer(me), &layer_text4.layer);
 }
 
 void result_window_load(Window* me) {
@@ -351,6 +425,31 @@ void get_result(int journee, int rang) {
   }
 }
 
+//API call to get best scorer ranking for match Day "journee", returns rank "rang" for the Day and allows to cycle through all top 10 players.
+//Call format is {"1":matchday,"2":"buteur","3":rank}
+//Return format is {"1":"D",2":"Player Name","3":"(Team Name)","4":points,"5":rank}
+
+
+void get_buteur(int journee, int rangbut) {
+	
+  DictionaryIterator* dict;
+  HTTPResult  result = http_out_get("http://japansio.info/api/testAPI.php", HTTP_COOKIE, &dict);
+  if (result != HTTP_OK) {
+    httpebble_error(result);
+    return;
+  }
+  
+  dict_write_int32(dict, 1, journee);
+  dict_write_cstring(dict, 2, "buteur");
+  dict_write_int32(dict, 3, rangbut);
+
+  result = http_out_send();
+  if (result != HTTP_OK) {
+    httpebble_error(result);
+    return;
+  }
+}
+
 //API call to get current match day. Returns highest match day with at least one game played.
 //Call format is {"1":0,"2":"","3":1}
 //Return format is {"1":"C",2":matchday}
@@ -391,6 +490,19 @@ void result_up_single_click_handler(ClickRecognizerRef recognizer, Window *windo
 	get_match(nbjournee,nummatch);
 }
 
+// Buteur window Up : ask for next match result (cycles from 0 to 6)
+void buteur_up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+  (void)recognizer;
+  (void)buteurwindow;
+	rangbuteur -=1;
+	text_layer_set_text(&layer_text1,"loading");
+	text_layer_set_text(&layer_text3,"previous");
+	text_layer_set_text(&layer_text4,"scorer");
+	text_layer_set_text(&layer_text2, "stat");
+	if(rangbuteur<1) {rangbuteur =10;}
+	get_buteur(nbjournee,rangbuteur);
+}
+
 // ranking window Up : ask for next in ranking (cycles from 1 to 14)
 void ranking_up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
@@ -417,6 +529,20 @@ void result_down_single_click_handler(ClickRecognizerRef recognizer, Window *win
 	get_match(nbjournee,nummatch);
 }
 
+// result window down : ask for previous match result (cycles from 6 to 0)
+void buteur_down_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+  (void)recognizer;
+  (void)buteurwindow;
+	rangbuteur +=1;
+	text_layer_set_text(&layer_text1,"loading");
+	text_layer_set_text(&layer_text3,"next");
+	text_layer_set_text(&layer_text4,"scorer");
+	text_layer_set_text(&layer_text2, "stat");
+	if(rangbuteur>10) {rangbuteur =1;}
+	get_buteur(nbjournee,rangbuteur);
+}
+
+//Result window Select : refresh current game data
 void result_select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)resultwindow;
@@ -426,6 +552,17 @@ void result_select_single_click_handler(ClickRecognizerRef recognizer, Window *w
 	text_layer_set_text(&layer_text2, "result");
 	get_match(nbjournee,nummatch);
 	
+}
+
+//Buteur Window Select : refresh current best scorer stats
+void buteur_select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+  (void)recognizer;
+  (void)buteurwindow;
+	text_layer_set_text(&layer_text1,"Refreshing");
+	text_layer_set_text(&layer_text3,"current");
+	text_layer_set_text(&layer_text4,"scorer");
+	text_layer_set_text(&layer_text2, "stat");
+	get_buteur(nbjournee,rangbuteur);
 }
 
 //Main window select : reload Current Match Day
@@ -462,6 +599,21 @@ void nbjourneeselect() {
 }
 
 //Config Provider for each window
+
+//buteur
+void buteur_click_config_provider(ClickConfig **config, Window *window) {
+  (void)resultwindow;
+
+  config[BUTTON_ID_UP]->click.handler = (ClickHandler) buteur_up_single_click_handler;
+  config[BUTTON_ID_UP]->click.repeat_interval_ms = 100;
+
+  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) buteur_down_single_click_handler;
+  config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
+	
+  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) buteur_select_single_click_handler;
+  config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 100;
+}
+
 
 //results
 void result_click_config_provider(ClickConfig **config, Window *window) {
