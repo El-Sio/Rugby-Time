@@ -24,18 +24,19 @@ PBL_APP_INFO(MY_UUID, "Rugby Time", "CANAL+", 1, 0, RESOURCE_ID_IMAGE_MENU_ICON,
 void handle_init(AppContextRef ctx);
 void http_success(int32_t request_id, int http_status, DictionaryIterator* received, void* context);
 void http_failure(int32_t request_id, int http_status, void* context);
-void window_unload3(Window* me);
-void window_unload2(Window* me);
+void ranking_window_unload(Window* me);
+void result_window_unload(Window* me);
 void mainwindow_load(Window* me);
 void mainwindow_unload(Window* me);
+void mainwindow_appear(Window* me);
 void menuwindow_load(Window* me);
 void menuwindow_unload(Window* me);
-void window_load2(Window* me);
-void window_load3(Window* me);
+void result_window_load(Window* me);
+void ranking_window_load(Window* me);
 void httpebble_error(int error_code);
-void click_config_provider(ClickConfig **config, Window *window);
-void click_config_provider2(ClickConfig **config, Window *window);
-void click_config_provider3(ClickConfig **config, Window *window);
+void main_click_config_provider(ClickConfig **config, Window *window);
+void result_click_config_provider(ClickConfig **config, Window *window);
+void ranking_click_config_provider(ClickConfig **config, Window *window);
 static void open_ranking(int index, void* context);
 static void open_results(int index, void* context);
 void get_match(int journee, int numeromatch);
@@ -45,6 +46,7 @@ void nbjourneeselect();
 
 ActionBarLayer ranking_action_bar;
 ActionBarLayer result_action_bar;
+ActionBarLayer main_action_bar;
 
 Window mainwindow;
 NumberWindow selectday;
@@ -109,8 +111,8 @@ static void open_ranking(int index, void* context) {
 	window_init(&rankingwindow, "Ranking");
 	window_stack_push(&rankingwindow, true);
 	window_set_window_handlers(&rankingwindow, (WindowHandlers){
-  	.load = window_load3,
-	.unload = window_unload3
+  	.load = ranking_window_load,
+	.unload = ranking_window_unload
   });
 	get_result(nbjournee,1);
 }
@@ -122,8 +124,8 @@ static void open_results(int index, void* context) {
     text_layer_set_text(&layer_text2, "loading...");
 	window_init(&resultwindow, "Result");
   	window_set_window_handlers(&resultwindow, (WindowHandlers){
-  	.load = window_load2,
-	.unload = window_unload2
+  	.load = result_window_load,
+	.unload = result_window_unload
   });
 	window_stack_push(&resultwindow, true);
 	get_match(nbjournee,0);	
@@ -136,9 +138,9 @@ void http_success(int32_t request_id, int http_status, DictionaryIterator* recei
   if (request_id != HTTP_COOKIE) {
     return;
   }
-text_layer_set_text(&layer_text1,"success !");
-text_layer_set_text(&layer_text4,"Back to Quit");
+text_layer_set_text(&layer_text1,"success");
 text_layer_set_text(&layer_text3,"	RUGBY TIME");
+text_layer_set_text(&layer_text4,"Back to Quit");
 text_layer_set_text(&layer_text2, "Select: reload");
 Tuple* tuple1 = dict_find(received, 1);
 Tuple* tuple2 = dict_find(received, 2);
@@ -151,6 +153,15 @@ Tuple* tuple2 = dict_find(received, 2);
 		text_layer_set_text(&layer_text3,"at day :");
 		text_layer_set_text(&layer_text4,itoa(nbjournee));
 		text_layer_set_text(&layer_text2, tuple2->value->cstring);
+		
+		//Case of empty ranking (data not yet present)
+		if(strcmp(tuple2->value->cstring,"NA")==0)
+		{
+			text_layer_set_text(&layer_text1,"No Data");
+			text_layer_set_text(&layer_text3,"for this day");
+			text_layer_set_text(&layer_text4,"press back");
+			text_layer_set_text(&layer_text2, "to change day");
+		}
 	}
 	
 	//Case for Results
@@ -195,25 +206,34 @@ void mainwindow_load(Window* me) {
 	
   
   bmp_init_container(RESOURCE_ID_IMAGE_MAIN_BALLON, &ballon_container);
-  layer_set_frame(&ballon_container.layer.layer, GRect(50,10,40,40));
+  heap_bitmap_init(&icon_refresh, RESOURCE_ID_IMAGE_ICON_REFRESH);
+  action_bar_layer_init(&main_action_bar);
+  action_bar_layer_set_click_config_provider(&main_action_bar, (ClickConfigProvider) main_click_config_provider);	
+  action_bar_layer_set_icon(&main_action_bar, BUTTON_ID_SELECT, &icon_refresh.bmp);
+  layer_set_frame(&ballon_container.layer.layer, GRect(30,10,40,40));
+  
+  
+}
+
+void mainwindow_appear(Window* me) {
+	
   layer_add_child(window_get_root_layer(me), &ballon_container.layer.layer);	
+  action_bar_layer_add_to_window(&main_action_bar, me);
   layer_add_child(window_get_root_layer(me), &layer_text2.layer);
   layer_add_child(window_get_root_layer(me), &layer_text4.layer);
   layer_add_child(window_get_root_layer(me), &layer_text3.layer);
   text_layer_set_text(&layer_text3, "	RUGBY TIME");
   text_layer_set_text(&layer_text1, "");
-  window_set_click_config_provider(me, (ClickConfigProvider) click_config_provider);
   text_layer_set_text(&layer_text4, "Back to Quit");
 	if(!loaded) { text_layer_set_text(&layer_text2, "Loading...");}
 	else { text_layer_set_text(&layer_text2, "Select: Reload");}
- 
-
-  
 }
 
 void mainwindow_unload(Window *me) {
 	
 	bmp_deinit_container(&ballon_container);
+	heap_bitmap_deinit(&icon_refresh);
+	action_bar_layer_remove_from_window(&main_action_bar);
 	layer_remove_child_layers(window_get_root_layer(me));
 }
 
@@ -229,7 +249,7 @@ void menuwindow_unload(Window* me) {
 	layer_remove_child_layers(window_get_root_layer(me));
 }
 
-void window_unload2(Window* me) {
+void result_window_unload(Window* me) {
 	
   heap_bitmap_deinit(&icon_plus);
   heap_bitmap_deinit(&icon_minus);
@@ -239,7 +259,7 @@ void window_unload2(Window* me) {
 
 }
 
-void window_unload3(Window* me) {
+void ranking_window_unload(Window* me) {
 
   heap_bitmap_deinit(&icon_plus);
   heap_bitmap_deinit(&icon_minus);
@@ -249,14 +269,14 @@ void window_unload3(Window* me) {
 	
 }
 
-void window_load2(Window* me) {
+void result_window_load(Window* me) {
 
   heap_bitmap_init(&icon_plus, RESOURCE_ID_IMAGE_ICON_PLUS);
   heap_bitmap_init(&icon_minus, RESOURCE_ID_IMAGE_ICON_MINUS);
   heap_bitmap_init(&icon_refresh, RESOURCE_ID_IMAGE_ICON_REFRESH);
   action_bar_layer_init(&result_action_bar);
   action_bar_layer_add_to_window(&result_action_bar, me);
-  action_bar_layer_set_click_config_provider(&result_action_bar, (ClickConfigProvider) click_config_provider2);	
+  action_bar_layer_set_click_config_provider(&result_action_bar, (ClickConfigProvider) result_click_config_provider);	
   action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
   action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
   action_bar_layer_set_icon(&result_action_bar, BUTTON_ID_SELECT, &icon_refresh.bmp);
@@ -266,12 +286,12 @@ void window_load2(Window* me) {
   layer_add_child(window_get_root_layer(me), &layer_text4.layer);
 }
 
-void window_load3(Window* me) {
+void ranking_window_load(Window* me) {
 
   heap_bitmap_init(&icon_plus, RESOURCE_ID_IMAGE_ICON_PLUS);
   heap_bitmap_init(&icon_minus, RESOURCE_ID_IMAGE_ICON_MINUS);
   action_bar_layer_init(&ranking_action_bar);
-  action_bar_layer_set_click_config_provider(&ranking_action_bar, (ClickConfigProvider) click_config_provider3);
+  action_bar_layer_set_click_config_provider(&ranking_action_bar, (ClickConfigProvider) ranking_click_config_provider);
 	action_bar_layer_add_to_window(&ranking_action_bar, me);
 	action_bar_layer_set_icon(&ranking_action_bar, BUTTON_ID_DOWN, &icon_plus.bmp);
     action_bar_layer_set_icon(&ranking_action_bar, BUTTON_ID_UP, &icon_minus.bmp);
@@ -359,7 +379,7 @@ void get_current_journee() {
 // Button handlers (one for each window)
 
 // result window Up : ask for next match result (cycles from 0 to 6)
-void up_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
+void result_up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)resultwindow;
 	nummatch +=1;
@@ -372,7 +392,7 @@ void up_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
 }
 
 // ranking window Up : ask for next in ranking (cycles from 1 to 14)
-void up_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
+void ranking_up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)rankingwindow;
 	numrang +=1;
@@ -385,7 +405,7 @@ void up_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
 }
 
 // result window down : ask for previous match result (cycles from 6 to 0)
-void down_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
+void result_down_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)resultwindow;
 	nummatch -=1;
@@ -397,7 +417,7 @@ void down_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
 	get_match(nbjournee,nummatch);
 }
 
-void select_single_click_handler2(ClickRecognizerRef recognizer, Window *window) {
+void result_select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)resultwindow;
 	text_layer_set_text(&layer_text1,"Refreshing");
@@ -409,7 +429,7 @@ void select_single_click_handler2(ClickRecognizerRef recognizer, Window *window)
 }
 
 //Main window select : reload Current Match Day
-void select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
+void main_select_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)resultwindow;
 	
@@ -418,7 +438,7 @@ void select_single_click_handler(ClickRecognizerRef recognizer, Window *window) 
 }
 
 // ranking window down : ask for previous in ranking (cycles from 14 to 0)
-void down_single_click_handler3(ClickRecognizerRef recognizer, Window *window) {
+void ranking_down_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
   (void)recognizer;
   (void)rankingwindow;
 
@@ -444,34 +464,34 @@ void nbjourneeselect() {
 //Config Provider for each window
 
 //results
-void click_config_provider2(ClickConfig **config, Window *window) {
+void result_click_config_provider(ClickConfig **config, Window *window) {
   (void)resultwindow;
 
-  config[BUTTON_ID_UP]->click.handler = (ClickHandler) up_single_click_handler2;
+  config[BUTTON_ID_UP]->click.handler = (ClickHandler) result_up_single_click_handler;
   config[BUTTON_ID_UP]->click.repeat_interval_ms = 100;
 
-  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) down_single_click_handler2;
+  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) result_down_single_click_handler;
   config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
 	
-  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) select_single_click_handler2;
+  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) result_select_single_click_handler;
   config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 100;
 }
 
 //ranking
-void click_config_provider3(ClickConfig **config, Window *window) {
+void ranking_click_config_provider(ClickConfig **config, Window *window) {
   (void)rankingwindow;
 
-  config[BUTTON_ID_UP]->click.handler = (ClickHandler) up_single_click_handler3;
+  config[BUTTON_ID_UP]->click.handler = (ClickHandler) ranking_up_single_click_handler;
   config[BUTTON_ID_UP]->click.repeat_interval_ms = 100;
 
-  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) down_single_click_handler3;
+  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) ranking_down_single_click_handler;
   config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 100;
 }
 
-void click_config_provider(ClickConfig **config, Window *window) {
+void main_click_config_provider(ClickConfig **config, Window *window) {
 	(void)mainwindow;
 	
-	  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) select_single_click_handler;
+	  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) main_select_single_click_handler;
       config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 100;
 }
 
@@ -510,7 +530,7 @@ void handle_init(AppContextRef ctx) {
   text_layer_set_text_alignment(&layer_text4, GTextAlignmentCenter);	
 	
 	window_init(&mainwindow, "Rugby Time");
-	window_set_window_handlers(&mainwindow, (WindowHandlers) {.load = mainwindow_load,.unload = mainwindow_unload});
+	window_set_window_handlers(&mainwindow, (WindowHandlers) {.load = mainwindow_load,.unload = mainwindow_unload, .appear = mainwindow_appear});
 	window_stack_push(&mainwindow, true);
 	get_current_journee();
 }
