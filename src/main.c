@@ -660,25 +660,29 @@ void handle_init(AppContextRef ctx) {
 	text_layer_init(&layer_text1, GRect(0, 10, 120, 30));
   	text_layer_set_text_color(&layer_text1, GColorBlack);
  	text_layer_set_background_color(&layer_text1, GColorClear);
-  	text_layer_set_font(&layer_text1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  	//text_layer_set_font(&layer_text1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(&layer_text1, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_CUSTOM_CANAL_BOLD_18)));
   	text_layer_set_text_alignment(&layer_text1, GTextAlignmentCenter);
 	
 	text_layer_init(&layer_text2, GRect(0, 110, 120, 30));
   text_layer_set_text_color(&layer_text2, GColorBlack);
   text_layer_set_background_color(&layer_text2, GColorClear);
-  text_layer_set_font(&layer_text2, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+//  text_layer_set_font(&layer_text2, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(&layer_text2, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_CUSTOM_CANAL_BOLD_18)));
   text_layer_set_text_alignment(&layer_text2, GTextAlignmentCenter);
 	
 	text_layer_init(&layer_text3, GRect(0, 50, 120, 30));
   text_layer_set_text_color(&layer_text3, GColorBlack);
   text_layer_set_background_color(&layer_text3, GColorClear);
-  text_layer_set_font(&layer_text3, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  //text_layer_set_font(&layer_text3, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(&layer_text3, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_CUSTOM_CANAL_BOLD_18)));
   text_layer_set_text_alignment(&layer_text3, GTextAlignmentCenter);
 
  text_layer_init(&layer_text4, GRect(0, 70, 120, 30));
   text_layer_set_text_color(&layer_text4, GColorBlack);
   text_layer_set_background_color(&layer_text4, GColorClear);
-  text_layer_set_font(&layer_text4, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+ // text_layer_set_font(&layer_text4, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(&layer_text4, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_CUSTOM_CANAL_BOLD_18)));
   text_layer_set_text_alignment(&layer_text4, GTextAlignmentCenter);	
 	
 	window_init(&mainwindow, "Rugby Time");

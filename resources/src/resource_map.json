@@ -1,6 +1,11 @@
 {
     "media": [
         {
+            "defName": "FONT_CUSTOM_CANAL_BOLD_18",
+            "type": "font",
+            "file": "fonts/CanalBoldItalique.ttf"
+        },
+        {
             "defName": "IMAGE_MAIN_BALLON",
             "type": "png",
             "file": "images/big_ballon.png"
